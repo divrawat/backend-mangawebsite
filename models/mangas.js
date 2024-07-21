@@ -54,10 +54,8 @@ const mangaSchema = new mongoose.Schema(
             required: true,
         }
     },
-    {
-        timestamps: { createdAt: true, updatedAt: false },
-        versionKey: false
-    },
+    { timestamps: { createdAt: true, updatedAt: false } },
+    { versionKey: false }
 );
 
 // export default mongoose.models.Manga || mongoose.model('Manga', mangaSchema);

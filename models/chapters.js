@@ -20,10 +20,8 @@ const chapterSchema = new mongoose.Schema(
             required: true,
         },
     },
-    {
-        timestamps: { createdAt: false, updatedAt: false },
-        versionKey: false
-    }
+    { timestamps: { createdAt: false, updatedAt: false } },
+    { versionKey: false }
 );
 
 // export default mongoose.models.Chapter || mongoose.model('Chapter', chapterSchema);

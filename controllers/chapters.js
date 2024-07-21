@@ -1,12 +1,11 @@
 import Chapter from '../models/chapters.js';
+import Manga from '../models/mangas.js';
 import multer from 'multer';
 
 const upload = multer({});
 
 export const UploadSingleChapter = async (req, res) => {
-    if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
+
 
     upload.none()(req, res, async (err) => {
         try {
@@ -31,8 +30,7 @@ export const UploadSingleChapter = async (req, res) => {
 
 
 export const GetMangaChaptersDashBoard = async (req, res) => {
-    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
-    await connectMongo();
+
     try {
         const totalCount = await Chapter.countDocuments().exec();
         const page = Number(req.query.page) || 1;
@@ -51,37 +49,8 @@ export const GetMangaChaptersDashBoard = async (req, res) => {
 };
 
 
-
-export const getParticularMangaChapter = async (req, res) => {
-    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
-
-    let { manganame, chapterNumber } = req.query;
-
-    try {
-        const data = await Chapter.findOne({ manganame, chapterNumber }).select('-_id -__v').exec();
-        res.json({ status: true, message: 'Particular Chapter Found', data });
-    } catch (err) {
-        console.error('Error fetching Particular Chapter:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-
-
-export const getMangaChapters = async (req, res) => {
-    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
-    let { manganame } = req.query;
-
-    try {
-        const data = await Chapter.find({ manganame }).select('-_id -__v').exec();
-        res.json({ status: true, message: 'All Chapters Fetched Successfully', data });
-    } catch (err) {
-        console.error('Error fetching Chapters:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-
 export const BulkPostChapters = async (req, res) => {
-    if (req.method !== 'POST') { res.status(405).json({ message: 'Method not allowed' }); }
+
     try {
         const chaptersData = req.body;
 
@@ -118,7 +87,7 @@ export const BulkPostChapters = async (req, res) => {
 
 
 export const BulkDeleteChapters = async (req, res) => {
-    if (req.method !== 'DELETE') { return res.status(405).json({ message: 'Method not allowed' }); }
+
     const { manganame } = req.body;
     try {
         const manga = await Chapter.find({ manganame });
@@ -130,18 +99,6 @@ export const BulkDeleteChapters = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -191,3 +148,49 @@ export const DeleteChapter = async (req, res) => {
         return res.status(500).json({ error: "Internal Server Error" });
     }
 }
+
+
+
+
+export const getParticularMangaChapterWithRelated = async (req, res) => {
+
+    let { manganame, chapterNumber } = req.query;
+
+    function convertToTitleCase(str) {
+        return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+
+    const convertedString = convertToTitleCase(manganame);
+    let numericPart = chapterNumber.split('-')[1];
+
+    try {
+        const chapterData = await Chapter.findOne({ manganame: convertedString, chapterNumber: numericPart }).select('-_id').exec();
+        if (!chapterData) { return res.status(404).json({ error: 'Chapter Not Found' }); }
+
+        const manga = await Manga.findOne({ manganame }).populate({ path: 'categories', select: 'slug name' }).select('-_id').exec();
+        const allchapterNumbers = await Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame').exec();
+
+        const categories = manga.categories;
+
+        const relatedMangas = await Manga.find({
+            categories: { $in: categories },
+            name: { $ne: convertedString }
+        })
+            .limit(10).select('-_id name slug chapterCount photo').exec();
+
+        const mangasWithChapterCounts = await Promise.all(
+            relatedMangas.map(async (manga) => {
+                const chapterCount = await Chapter.countDocuments({ manganame: manga.name }).exec();
+                return {
+                    ...manga.toObject(),
+                    chapterCount,
+                };
+            })
+        );
+
+        res.json({ status: true, message: 'Particular Chapter Found', chapterData, manga, allchapterNumbers, relatedMangas: mangasWithChapterCounts });
+    } catch (err) {
+        console.error('Error fetching Particular Chapter:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};

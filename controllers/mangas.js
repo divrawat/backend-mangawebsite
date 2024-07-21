@@ -57,7 +57,7 @@ export const getSingleManga = async (req, res) => {
     let name = manganame;
 
     try {
-        const data = await Manga.findOne({ name }).populate('categories').select('-_id -__v ').exec();
+        const data = await Manga.findOne({ name }).populate('categories').select('-_id ').exec();
         if (!data) { return res.status(404).json({ error: 'Manga Not Found' }); }
 
         const categories = data.categories;
@@ -170,3 +170,47 @@ export const UpdateManga = async (req, res) => {
         }
     });
 }
+
+
+
+
+export const getMangaChaptersRelated = async (req, res) => {
+    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
+    let { manganame } = req.query;
+
+    function convertToTitleCase(str) {
+        return str
+            .split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+
+    const convertedString = convertToTitleCase(manganame);
+
+    try {
+        const manga = await Manga.findOne({ slug: manganame }).populate({ path: 'categories', select: 'slug name' }).select('-_id -createdAt').exec();
+        if (!manga) { return res.status(404).json({ error: 'Manga Not Found' }); }
+        const data = await Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame').exec();
+
+        const categories = manga.categories;
+
+        const relatedMangas = await Manga.find({
+            categories: { $in: categories },
+            name: { $ne: convertedString }
+        })
+            .limit(10).select('-_id name slug chapterCount photo').exec();
+
+        const mangasWithChapterCounts = await Promise.all(
+            relatedMangas.map(async (manga) => {
+                const chapterCount = await Chapter.countDocuments({ manganame: manga.name }).exec();
+                return {
+                    ...manga.toObject(),
+                    chapterCount,
+                };
+            })
+        );
+
+        res.json({ status: true, message: 'All Chapters Fetched Successfully', data, manga, relatedMangas: mangasWithChapterCounts });
+    } catch (err) {
+        console.error('Error fetching Chapters:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
