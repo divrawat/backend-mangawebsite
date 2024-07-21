@@ -13,7 +13,7 @@ import authRoutes from "./routes/auth.js";
 const app = express();
 
 const corsOptions = {
-  origin: ['http://example.com', 'http://localhost:3000'],
+  origin: ['https://mangawebsite.vercel.app', 'http://localhost:3000'],
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
 };
 
