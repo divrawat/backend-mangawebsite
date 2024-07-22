@@ -9,6 +9,7 @@ import categoryRoutes from "./routes/categories.js";
 import mangaRoutes from "./routes/mangas.js";
 import chaptersRoutes from "./routes/chapters.js";
 import authRoutes from "./routes/auth.js";
+import compression from "compression";
 
 const app = express();
 
@@ -18,6 +19,13 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+
+app.use(compression({
+  level: 6,
+  threshold: 1 * 1000
+}));
+
 
 mongoose.set("strictQuery", true);
 mongoose.connect(process.env.MONGODB_URI, {}).then(() => console.log("DB connected")).catch((err) => console.log("DB Error => ", err));

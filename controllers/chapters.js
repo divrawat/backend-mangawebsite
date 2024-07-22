@@ -151,7 +151,7 @@ export const DeleteChapter = async (req, res) => {
 
 
 
-
+/*
 export const getParticularMangaChapterWithRelated = async (req, res) => {
 
     let { manganame, chapterNumber } = req.query;
@@ -189,6 +189,56 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
         );
 
         res.json({ status: true, message: 'Particular Chapter Found', chapterData, manga, allchapterNumbers, relatedMangas: mangasWithChapterCounts });
+    } catch (err) {
+        console.error('Error fetching Particular Chapter:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+*/
+
+
+
+export const getParticularMangaChapterWithRelated = async (req, res) => {
+    let { manganame, chapterNumber } = req.query;
+
+    function convertToTitleCase(str) {
+        return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+
+    const convertedString = convertToTitleCase(manganame);
+    let numericPart = chapterNumber.split('-')[1];
+
+    try {
+        // Parallelize independent queries
+        const [chapterData, manga] = await Promise.all([
+            Chapter.findOne({ manganame: convertedString, chapterNumber: numericPart }).select('-_id').exec(),
+            Manga.findOne({ slug: manganame }).populate({ path: 'categories', select: 'slug name' }).select('-_id').exec()
+        ]);
+
+        if (!chapterData) {
+            return res.status(404).json({ error: 'Chapter Not Found' });
+        }
+
+        // Fetch all chapter numbers and related mangas in parallel
+        const [allchapterNumbers, relatedMangas] = await Promise.all([
+            Chapter.find({ manganame: convertedString }).select('chapterNumber -_id').exec(),
+            Manga.aggregate([
+                { $match: { categories: { $in: manga.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
+                { $lookup: { from: 'chapters', localField: 'name', foreignField: 'manganame', as: 'chapters' } },
+                { $addFields: { chapterCount: { $size: '$chapters' } } },
+                { $project: { _id: 0, name: 1, slug: 1, chapterCount: 1, photo: 1 } },
+                { $limit: 10 }
+            ]).exec()
+        ]);
+
+        res.json({
+            status: true,
+            message: 'Particular Chapter Found',
+            chapterData,
+            manga,
+            allchapterNumbers,
+            relatedMangas
+        });
     } catch (err) {
         console.error('Error fetching Particular Chapter:', err);
         res.status(500).json({ error: 'Internal Server Error' });

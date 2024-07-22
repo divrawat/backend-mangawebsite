@@ -3,6 +3,7 @@ import Manga from '../models/mangas.js';
 import multer from 'multer';
 const upload = multer({});
 
+/*
 export const HomePageMangas = async (req, res) => {
     if (req.method !== 'GET') {
         return res.status(405).json({ error: 'Method not allowed' });
@@ -19,6 +20,51 @@ export const HomePageMangas = async (req, res) => {
                 }
             }
         ];
+        const data = await Manga.aggregate(aggregation);
+
+        res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data });
+    } catch (err) {
+        console.error('Error fetching Mangas:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+*/
+
+Manga.createIndexes({ categories: 1 });
+
+export const HomePageMangas = async (req, res) => {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    try {
+        // Optimize the aggregation pipeline
+        const aggregation = [
+            { $sample: { size: 10 } },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'categories',
+                    foreignField: '_id',
+                    as: 'categories',
+                    pipeline: [
+                        { $project: { _id: 0, name: 1, slug: 1 } } // Limit fields
+                    ]
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    photo: 1,
+                    fullname: 1,
+                    type: 1,
+                    slug: 1,
+                    description: 1,
+                    categories: 1
+                }
+            }
+        ];
+
         const data = await Manga.aggregate(aggregation);
 
         res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data });
@@ -173,7 +219,7 @@ export const UpdateManga = async (req, res) => {
 
 
 
-
+/*
 export const getMangaChaptersRelated = async (req, res) => {
     if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
     let { manganame } = req.query;
@@ -209,6 +255,58 @@ export const getMangaChaptersRelated = async (req, res) => {
         );
 
         res.json({ status: true, message: 'All Chapters Fetched Successfully', data, manga, relatedMangas: mangasWithChapterCounts });
+    } catch (err) {
+        console.error('Error fetching Chapters:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+*/
+
+export const getMangaChaptersRelated = async (req, res) => {
+    if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    let { manganame } = req.query;
+
+    function convertToTitleCase(str) {
+        return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+
+    const convertedString = convertToTitleCase(manganame);
+
+    try {
+        // Using a single aggregation pipeline for efficiency
+        const manga = await Manga.aggregate([
+            { $match: { slug: manganame } },
+            { $lookup: { from: 'categories', localField: 'categories', foreignField: '_id', as: 'categories' } },
+            { $project: { _id: 0, createdAt: 0 } }
+        ]).exec();
+
+        if (!manga.length) {
+            return res.status(404).json({ error: 'Manga Not Found' });
+        }
+
+        const [mangaData] = manga;
+
+        const [chapters, relatedMangas] = await Promise.all([
+            Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame').exec(),
+            Manga.aggregate([
+                { $match: { categories: { $in: mangaData.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
+                { $lookup: { from: 'chapters', localField: 'name', foreignField: 'manganame', as: 'chapters' } },
+                { $addFields: { chapterCount: { $size: '$chapters' } } },
+                { $project: { _id: 0, name: 1, slug: 1, chapterCount: 1, photo: 1 } },
+                { $limit: 10 }
+            ]).exec()
+        ]);
+
+        res.json({
+            status: true,
+            message: 'All Chapters Fetched Successfully',
+            data: chapters,
+            manga: mangaData,
+            relatedMangas
+        });
     } catch (err) {
         console.error('Error fetching Chapters:', err);
         res.status(500).json({ error: 'Internal Server Error' });
