@@ -303,7 +303,7 @@ export const getMangaPerCategoryHome0 = async (req, res) => {
 };
 
 
-
+/*
 export const getMangaPerCategoryHome = async (req, res) => {
     try {
         const categories = await Category.find();
@@ -324,6 +324,41 @@ export const getMangaPerCategoryHome = async (req, res) => {
         }
         res.json(result);
     } catch (err) {
+        res.status(500).json({ error: 'An error occurred while fetching mangas by category' });
+    }
+};
+*/
+
+export const getMangaPerCategoryHome = async (req, res) => {
+    try {
+        const categories = await Category.find();
+
+        const categoryPromises = categories.map(async (category) => {
+            const mangas = await Manga.find({ categories: category._id }).select('photo slug name').limit(50);
+
+            const mangasWithChaptersPromises = mangas.map(async (manga) => {
+                const chapterCount = await Chapter.countDocuments({ manganame: manga.name });
+                return {
+                    photo: manga.photo,
+                    slug: manga.slug,
+                    name: manga.name,
+                    chapterCount
+                };
+            });
+
+            const mangasWithChapters = await Promise.all(mangasWithChaptersPromises);
+            return { categoryName: category.name, mangasWithChapters };
+        });
+
+        const resultArray = await Promise.all(categoryPromises);
+        const result = resultArray.reduce((acc, { categoryName, mangasWithChapters }) => {
+            acc[categoryName] = mangasWithChapters;
+            return acc;
+        }, {});
+
+        res.json(result);
+    } catch (err) {
+        console.error(err);
         res.status(500).json({ error: 'An error occurred while fetching mangas by category' });
     }
 };
