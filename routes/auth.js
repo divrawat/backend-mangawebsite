@@ -6,7 +6,7 @@ import { check } from "express-validator";
 
 const usersigninvalidator = [check('email').isEmail().withMessage('Must be a valid email address')]
 
-router.post('/signin', usersigninvalidator, runvalidation, login);
+router.post('/login', usersigninvalidator, runvalidation, login);
 router.get('/admin-signout', signout);
 
 

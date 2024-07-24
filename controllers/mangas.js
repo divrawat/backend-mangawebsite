@@ -1,41 +1,13 @@
 import Chapter from '../models/chapters.js';
 import Manga from '../models/mangas.js';
+import Category from '../models/categories.js';
 import multer from 'multer';
 const upload = multer({});
-
-/*
-export const HomePageMangas = async (req, res) => {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
-
-    try {
-        const aggregation = [
-            { $sample: { size: 10 } },
-            { $lookup: { from: 'categories', localField: 'categories', foreignField: '_id', as: 'categories' } },
-            {
-                $project: {
-                    _id: 0, photo: 1, fullname: 1, type: 1, slug: 1, description: 1,
-                    categories: { $map: { input: '$categories', as: 'category', in: { name: '$$category.name', slug: '$$category.slug' } } },
-                }
-            }
-        ];
-        const data = await Manga.aggregate(aggregation);
-
-        res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data });
-    } catch (err) {
-        console.error('Error fetching Mangas:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-*/
+import slugify from 'slugify';
 
 Manga.createIndexes({ categories: 1 });
 
 export const HomePageMangas = async (req, res) => {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
 
     try {
         // Optimize the aggregation pipeline
@@ -76,7 +48,7 @@ export const HomePageMangas = async (req, res) => {
 
 
 export const GetMangasDashBoard = async (req, res) => {
-    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
+
     try {
         const totalCount = await Manga.countDocuments().exec();
         const page = Number(req.query.page) || 1;
@@ -98,7 +70,6 @@ export const GetMangasDashBoard = async (req, res) => {
 
 
 export const getSingleManga = async (req, res) => {
-    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
     let { manganame } = req.query;
     let name = manganame;
 
@@ -134,7 +105,6 @@ export const getSingleManga = async (req, res) => {
 
 
 export const addManga = async (req, res) => {
-    if (req.method !== 'POST') { return res.status(405).json({ error: 'Method not allowed' }); }
 
     upload.none()(req, res, async (err) => {
         if (err) { return res.status(400).json({ error: 'Something went wrong' }); }
@@ -168,8 +138,8 @@ export const addManga = async (req, res) => {
 
 
 export const DeleteManga = async (req, res) => {
-    if (req.method !== 'POST') { return res.status(405).json({ error: 'Method not allowed' }); }
-    const { id } = req.query;
+    const { id } = req.params;
+
     if (!id) { return res.status(404).json({ error: 'Manga not found' }); }
 
     try {
@@ -184,8 +154,7 @@ export const DeleteManga = async (req, res) => {
 
 
 export const UpdateManga = async (req, res) => {
-    if (req.method !== 'POST') { return res.status(405).json({ error: 'Method not allowed' }); }
-    const { id } = req.query;
+    const { id } = req.params;
     upload.none()(req, res, async (err) => {
         if (err) { return res.status(400).json({ error: 'Something went wrong' }); }
 
@@ -263,9 +232,6 @@ export const getMangaChaptersRelated = async (req, res) => {
 */
 
 export const getMangaChaptersRelated = async (req, res) => {
-    if (req.method !== 'GET') {
-        return res.status(405).json({ error: 'Method not allowed' });
-    }
 
     let { manganame } = req.query;
 
@@ -310,5 +276,54 @@ export const getMangaChaptersRelated = async (req, res) => {
     } catch (err) {
         console.error('Error fetching Chapters:', err);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+
+
+
+
+
+
+
+export const getMangaPerCategoryHome0 = async (req, res) => {
+    try {
+        const categories = await Category.find();
+        const result = {};
+        for (const category of categories) {
+            const mangas = await Manga.find({ categories: category._id }).select('-_id name slug photo').limit(10).exec();
+            result[category.name] = mangas;
+        }
+
+        res.json(result);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: 'An error occurred while fetching mangas by category' });
+    }
+};
+
+
+
+export const getMangaPerCategoryHome = async (req, res) => {
+    try {
+        const categories = await Category.find();
+        const result = {};
+        for (const category of categories) {
+            const mangas = await Manga.find({ categories: category._id }).select('photo slug name').limit(50);;
+            const mangasWithChapters = [];
+            for (const manga of mangas) {
+                const chapterCount = await Chapter.countDocuments({ manganame: manga.name });
+                mangasWithChapters.push({
+                    photo: manga.photo,
+                    slug: manga.slug,
+                    name: manga.name,
+                    chapterCount
+                });
+            }
+            result[category.name] = mangasWithChapters;
+        }
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: 'An error occurred while fetching mangas by category' });
     }
 };

@@ -136,7 +136,7 @@ export const UpdateChapter = async (req, res) => {
 
 
 export const DeleteChapter = async (req, res) => {
-    const { id } = req.query;
+    const { id } = req.params;
     if (!id) { return res.status(404).json({ error: 'Chapter not found' }); }
 
     try {
@@ -219,7 +219,7 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
             return res.status(404).json({ error: 'Chapter Not Found' });
         }
 
-        // Fetch all chapter numbers and related mangas in parallel
+        // Fetch all  chapter numbers and related mangas in parallel
         const [allchapterNumbers, relatedMangas] = await Promise.all([
             Chapter.find({ manganame: convertedString }).select('chapterNumber -_id').exec(),
             Manga.aggregate([

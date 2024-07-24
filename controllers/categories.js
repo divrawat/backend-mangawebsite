@@ -1,11 +1,12 @@
 import Category from "../models/categories.js";
 import Manga from "../models/mangas.js";
 import Chapter from "../models/chapters.js";
+import slugify from "slugify";
 
 export const DeleteCategory = async (req, res) => {
     if (req.method === 'DELETE') {
 
-        const { slug } = req.query;
+        const { slug } = req.params;
         try {
             const data = await Category.findOneAndDelete({ slug }).exec();
             if (!data) { return res.status(400).json({ error: 'Category not found' }); }
@@ -23,7 +24,7 @@ export const GetMangaCategories = async (req, res) => {
     const { slug } = req.query;
 
     try {
-        const category = await Category.findOne({ slug }).select('-description -slug -__v').exec();
+        const category = await Category.findOne({ slug }).select('-description -__v').exec();
         if (!category) { return res.status(400).json({ error: 'Category not found' }); }
 
 
@@ -52,7 +53,6 @@ export const GetMangaCategories = async (req, res) => {
 
 
 export const CreateCategory = async (req, res) => {
-    if (req.method !== 'POST') { return res.status(405).json({ error: 'Method not allowed' }); }
 
     const { name, description } = req.body;
     const slug = slugify(name).toLowerCase();
@@ -67,7 +67,6 @@ export const CreateCategory = async (req, res) => {
 
 
 export const GetCategories = async (req, res) => {
-    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
     try {
         const categories = await Category.find();
         return res.status(200).json({ categories });
