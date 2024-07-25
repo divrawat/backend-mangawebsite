@@ -13,12 +13,7 @@ import compression from "compression";
 
 const app = express();
 
-const corsOptions = {
-  origin: ['https://mangawebsite.vercel.app', 'https://backend-mangawebsite.vercel.app', 'http://localhost:3000'],
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 
 
 app.use(compression({
