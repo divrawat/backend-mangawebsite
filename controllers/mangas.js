@@ -373,7 +373,7 @@ export const getMangaPerCategoryHome = async (req, res) => {
         const mangasByCategory = await Promise.all(
             categories.map(async (category) => {
                 const mangas = await Manga.find({ categories: category._id })
-                    .select('photo slug name chapterCount').limit(50);
+                    .select('photo slug name -_id').limit(50);
                 return { categoryName: category.name, mangas };
             })
         );
