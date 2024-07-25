@@ -16,6 +16,10 @@ const mangaSchema = new mongoose.Schema(
             unique: true,
             index: true,
         },
+        totalChapters: {
+            type: Number,
+            trim: true,
+        },
         description: {
             type: String,
             trim: true,

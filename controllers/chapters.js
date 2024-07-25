@@ -6,17 +6,21 @@ const upload = multer({});
 
 export const UploadSingleChapter = async (req, res) => {
 
-
     upload.none()(req, res, async (err) => {
         try {
 
             const { manganame, chapterNumber, numImages } = req.body;
+
+            const manga = await Manga.findOne({ name: manganame });
+            if (!manga) { return res.status(404).json({ error: 'There is no Manga with this name' }); }
 
             const existingChapter = await Chapter.findOne({ manganame: manganame, chapterNumber: chapterNumber });
 
             if (existingChapter) { return res.status(400).json({ error: 'Chapter number already exists for this manga' }); }
             const newChapter = new Chapter({ manganame, chapterNumber, numImages });
             await newChapter.save();
+
+            await Manga.findOneAndUpdate({ name: manganame }, { $inc: { totalChapters: 1 } });
 
             res.status(201).json({ message: 'Chapter added successfully' });
         } catch (error) {
@@ -49,10 +53,18 @@ export const GetMangaChaptersDashBoard = async (req, res) => {
 };
 
 
-export const BulkPostChapters = async (req, res) => {
 
+
+export const BulkPostChapters = async (req, res) => {
     try {
         const chaptersData = req.body;
+
+        const currentmanganame = chaptersData[0].manganame
+
+        const manga = await Manga.findOne({ name: currentmanganame });
+        if (!manga) { return res.status(404).json({ error: 'There is no Manga with this name' }); }
+
+
 
         const existingChapters = await Chapter.find({
             $or: chaptersData.map(chapter => ({
@@ -67,13 +79,35 @@ export const BulkPostChapters = async (req, res) => {
             existingChapterMap[key] = true;
         });
 
+        // Filter new chapters
         const newChapters = chaptersData.filter(chapter => {
             const key = `${chapter.manganame}_${chapter.chapterNumber}`;
             return !existingChapterMap[key];
         });
 
+        // Insert new chapters and update totalChapters field
         if (newChapters.length > 0) {
             const result = await Chapter.insertMany(newChapters, { timestamps: false });
+
+            // Create a map to keep track of how many new chapters were added per manga
+            const mangaChapterCount = {};
+            newChapters.forEach(chapter => {
+                if (!mangaChapterCount[chapter.manganame]) {
+                    mangaChapterCount[chapter.manganame] = 0;
+                }
+                mangaChapterCount[chapter.manganame]++;
+            });
+
+            // Increment totalChapters for each manga
+            await Promise.all(
+                Object.keys(mangaChapterCount).map(async manganame => {
+                    await Manga.findOneAndUpdate(
+                        { name: manganame },
+                        { $inc: { totalChapters: mangaChapterCount[manganame] } }
+                    );
+                })
+            );
+
             return res.status(200).json({ message: 'Bulk Chapters Added Successfully', result });
         } else {
             return res.status(400).json({ message: 'All chapters already exist' });
@@ -83,9 +117,20 @@ export const BulkPostChapters = async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Error saving chapters' });
     }
-}
+};
 
 
+
+
+
+
+
+
+
+
+
+
+/*
 export const BulkDeleteChapters = async (req, res) => {
 
     const { manganame } = req.body;
@@ -99,6 +144,35 @@ export const BulkDeleteChapters = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 }
+*/
+
+export const BulkDeleteChapters = async (req, res) => {
+    const { manganame } = req.body;
+
+    try {
+        // Find chapters to delete
+        const chapters = await Chapter.find({ manganame });
+        if (!chapters || chapters.length === 0) {
+            return res.status(404).json({ error: 'Manga not found or no chapters to delete' });
+        }
+
+        // Delete the chapters
+        const result = await Chapter.deleteMany({ manganame });
+
+        // Update the totalChapters field in the Manga model
+        await Manga.findOneAndUpdate(
+            { name: manganame },
+            { $set: { totalChapters: 0 } } // Set totalChapters to 0
+        );
+
+        res.status(200).json({ message: 'Chapters deleted successfully', result });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+
 
 
 
@@ -142,6 +216,9 @@ export const DeleteChapter = async (req, res) => {
     try {
         const manga = await Chapter.findByIdAndDelete(id);
         if (!manga) { return res.status(404).json({ error: 'Chapter not found' }); }
+
+        await Manga.findOneAndUpdate({ name: manga.manganame }, { $inc: { totalChapters: -1 } });
+
         return res.status(200).json({ message: 'Chapter deleted successfully' });
     } catch (error) {
         console.log(error);

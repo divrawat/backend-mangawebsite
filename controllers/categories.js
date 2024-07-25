@@ -19,7 +19,7 @@ export const DeleteCategory = async (req, res) => {
     }
 };
 
-
+/*
 export const GetMangaCategories = async (req, res) => {
     const { slug } = req.query;
 
@@ -49,6 +49,41 @@ export const GetMangaCategories = async (req, res) => {
         res.status(400).json({ error: "Internal Server Error" });
     }
 }
+*/
+
+export const GetMangaCategories = async (req, res) => {
+    const { slug } = req.query;
+
+    try {
+        // Find the category by slug
+        const category = await Category.findOne({ slug }).select('-description -__v').exec();
+        if (!category) {
+            return res.status(400).json({ error: 'Category not found' });
+        }
+
+        // Pagination setup
+        const page = Number(req.query.page) || 1;
+        const perPage = 18;
+        const skip = (page - 1) * perPage;
+
+        // Total count of mangas in the category
+        const totalCount = await Manga.countDocuments({ categories: category._id }).exec();
+
+        // Fetch mangas with the totalChapters field
+        const mangas = await Manga.find({ categories: category._id })
+            .select('-_id -__v -createdAt')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(perPage)
+            .exec();
+
+        // Send response
+        res.json({ category, mangas, totalCount });
+    } catch (err) {
+        console.error(err);
+        res.status(400).json({ error: "Internal Server Error" });
+    }
+};
 
 
 
