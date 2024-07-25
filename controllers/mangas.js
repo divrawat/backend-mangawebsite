@@ -365,7 +365,7 @@ export const getMangaPerCategoryHome = async (req, res) => {
 };
 */
 
-
+/*
 export const getMangaPerCategoryHome = async (req, res) => {
     try {
         const categories = await Category.find({ projection: { name: 1 } });
@@ -380,6 +380,46 @@ export const getMangaPerCategoryHome = async (req, res) => {
 
         const result = mangasByCategory.reduce((acc, { categoryName, mangas }) => {
             acc[categoryName] = mangas;
+            return acc;
+        }, {});
+
+        res.json(result);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'An error occurred while fetching mangas by category' });
+    }
+};
+*/
+
+
+export const getMangaPerCategoryHome = async (req, res) => {
+    try {
+        const categories = await Category.find();
+        const categoryIds = categories.map(category => category._id);
+        const mangas = await Manga.aggregate([
+            { $match: { categories: { $in: categoryIds } } },
+            {
+                $lookup: {
+                    from: 'chapters',
+                    localField: 'name',
+                    foreignField: 'manganame',
+                    as: 'chapters'
+                }
+            },
+            { $addFields: { chapterCount: { $size: '$chapters' } } },
+            { $project: { photo: 1, slug: 1, name: 1, categories: 1, chapterCount: 1 } },
+            { $sort: { 'categories': 1 } },
+            { $limit: 50 }
+        ]);
+        const result = categories.reduce((acc, category) => {
+            acc[category.name] = mangas
+                .filter(manga => manga.categories.includes(category._id))
+                .map(({ photo, slug, name, chapterCount }) => ({
+                    photo,
+                    slug,
+                    name,
+                    chapterCount
+                }));
             return acc;
         }, {});
 
