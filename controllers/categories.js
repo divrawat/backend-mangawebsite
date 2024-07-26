@@ -61,15 +61,10 @@ export const GetMangaCategories = async (req, res) => {
             return res.status(400).json({ error: 'Category not found' });
         }
 
-        // Pagination setup
         const page = Number(req.query.page) || 1;
         const perPage = 18;
         const skip = (page - 1) * perPage;
-
-        // Total count of mangas in the category
         const totalCount = await Manga.countDocuments({ categories: category._id }).exec();
-
-        // Fetch mangas with the totalChapters field
         const mangas = await Manga.find({ categories: category._id })
             .select('-_id -__v -createdAt')
             .sort({ createdAt: -1 })

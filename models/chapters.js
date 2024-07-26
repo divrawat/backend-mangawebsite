@@ -20,7 +20,7 @@ const chapterSchema = new mongoose.Schema(
             required: true,
         },
     },
-    { timestamps: { createdAt: false, updatedAt: false } },
+    { timestamps: { createdAt: true, updatedAt: false } },
     { versionKey: false }
 );
 

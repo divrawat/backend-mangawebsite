@@ -1,9 +1,9 @@
 import express from "express";
 const router = express.Router();
 import { requireSignin, adminMiddleware } from "../controllers/auth.js";
-import { HomePageMangas, GetMangasDashBoard, getSingleManga, addManga, DeleteManga, UpdateManga, getMangaChaptersRelated, getMangaPerCategoryHome } from "../controllers/mangas.js";
+import { HomePageMangas, GetMangasDashBoard, getSingleManga, addManga, DeleteManga, UpdateManga, getMangaChaptersRelated, getMangaPerCategoryHome, getLatestMangas } from "../controllers/mangas.js";
 
-
+router.get('/manga/get-latest-mangas', getLatestMangas);
 router.get('/manga/home-page-mangas', HomePageMangas);
 router.get('/manga/home-page-manga-per-category', getMangaPerCategoryHome);
 router.get('/manga/get-single-manga', getSingleManga);

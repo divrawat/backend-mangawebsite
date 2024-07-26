@@ -303,3 +303,15 @@ export const getMangaPerCategoryHome = async (req, res) => {
         res.status(500).json({ error: 'An error occurred while fetching mangas by category' });
     }
 };
+
+
+
+export const getLatestMangas = async (req, res) => {
+    try {
+        const latestMangas = await Manga.find().sort({ createdAt: -1 }).select('name photo slug totalChapters -_id').limit(50);
+        res.json(latestMangas);
+    } catch (error) {
+        console.error('Error fetching latest mangas:', error);
+        throw error;
+    }
+};
