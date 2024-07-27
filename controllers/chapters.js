@@ -87,7 +87,7 @@ export const BulkPostChapters = async (req, res) => {
 
         // Insert new chapters and update totalChapters field
         if (newChapters.length > 0) {
-            const result = await Chapter.insertMany(newChapters, { timestamps: false });
+            const result = await Chapter.insertMany(newChapters);
 
             // Create a map to keep track of how many new chapters were added per manga
             const mangaChapterCount = {};

@@ -24,6 +24,7 @@ const chapterSchema = new mongoose.Schema(
     { versionKey: false }
 );
 
+chapterSchema.index({ manganame: 1, chapterNumber: 1 }, { unique: true });
 // export default mongoose.models.Chapter || mongoose.model('Chapter', chapterSchema);
 
 export default mongoose.model('Chapter', chapterSchema);

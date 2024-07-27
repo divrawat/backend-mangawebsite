@@ -54,7 +54,6 @@ const mangaSchema = new mongoose.Schema(
         slug: {
             type: String,
             unique: true,
-            index: true,
             required: true,
         }
     },
