@@ -315,3 +315,15 @@ export const getLatestMangas = async (req, res) => {
         throw error;
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+

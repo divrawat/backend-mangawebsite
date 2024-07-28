@@ -9,6 +9,7 @@ import categoryRoutes from "./routes/categories.js";
 import mangaRoutes from "./routes/mangas.js";
 import chaptersRoutes from "./routes/chapters.js";
 import authRoutes from "./routes/auth.js";
+import contactRoutes from "./routes/contact.js";
 import compression from "compression";
 
 const app = express();
@@ -32,6 +33,7 @@ app.use('/api', categoryRoutes);
 app.use('/api', mangaRoutes);
 app.use('/api', chaptersRoutes);
 app.use('/api', authRoutes);
+app.use('/api', contactRoutes);
 
 
 app.get('/', (req, res) => { res.json("Backend index"); });

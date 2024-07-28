@@ -55,12 +55,12 @@ const mangaSchema = new mongoose.Schema(
             type: String,
             unique: true,
             required: true,
-        }
+        },
+        latestChapter: { type: ObjectId, ref: 'Chapter' },
+        secondlatestChapter: { type: ObjectId, ref: 'Chapter' }
     },
     { timestamps: { createdAt: true, updatedAt: false } },
     { versionKey: false }
 );
-
-// export default mongoose.models.Manga || mongoose.model('Manga', mangaSchema);
 
 export default mongoose.model('Manga', mangaSchema);

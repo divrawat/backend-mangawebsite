@@ -1,11 +1,11 @@
 import express from "express";
 const router = express.Router();
 import { requireSignin, adminMiddleware } from "../controllers/auth.js";
-import { GetMangaChaptersDashBoard, UploadSingleChapter, getParticularMangaChapterWithRelated, BulkPostChapters, BulkDeleteChapters, DeleteChapter, UpdateChapter } from "../controllers/chapters.js";
+import { GetMangaChaptersDashBoard, UploadSingleChapter, GetMostRecentChapters, getParticularMangaChapterWithRelated, BulkPostChapters, BulkDeleteChapters, DeleteChapter, UpdateChapter } from "../controllers/chapters.js";
 
 router.get('/chapters/get', requireSignin, adminMiddleware, GetMangaChaptersDashBoard);
 router.get('/chapters/get-particular-manga-chapter-with-related', getParticularMangaChapterWithRelated);
-
+router.get('/chapters/get-most-recent-chapters', GetMostRecentChapters);
 
 
 router.post('/chapters/single-post', requireSignin, adminMiddleware, UploadSingleChapter);
