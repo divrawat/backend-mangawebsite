@@ -380,9 +380,6 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
 
 
 
-
-
-
 export const GetMostRecentChapters = async (req, res) => {
     try {
         const mangas = await Manga.find().populate({ path: 'latestChapter', select: 'chapterNumber createdAt', })

@@ -5,35 +5,19 @@ import multer from 'multer';
 const upload = multer({});
 import slugify from 'slugify';
 
-Manga.createIndexes({ categories: 1 });
-
 export const HomePageMangas = async (req, res) => {
 
     try {
-        // Optimize the aggregation pipeline
         const aggregation = [
             { $sample: { size: 10 } },
             {
                 $lookup: {
-                    from: 'categories',
-                    localField: 'categories',
-                    foreignField: '_id',
-                    as: 'categories',
-                    pipeline: [
-                        { $project: { _id: 0, name: 1, slug: 1 } } // Limit fields
-                    ]
+                    from: 'categories', localField: 'categories', foreignField: '_id', as: 'categories',
+                    pipeline: [{ $project: { _id: 0, name: 1, slug: 1 } }]
                 }
             },
             {
-                $project: {
-                    _id: 0,
-                    photo: 1,
-                    fullname: 1,
-                    type: 1,
-                    slug: 1,
-                    description: 1,
-                    categories: 1
-                }
+                $project: { _id: 0, photo: 1, fullname: 1, type: 1, slug: 1, description: 1, categories: 1 }
             }
         ];
 
@@ -305,7 +289,7 @@ export const getMangaPerCategoryHome = async (req, res) => {
 };
 
 
-
+/*
 export const getLatestMangas = async (req, res) => {
     try {
         const latestMangas = await Manga.find().sort({ createdAt: -1 }).select('name photo slug totalChapters -_id').limit(50);
@@ -315,15 +299,34 @@ export const getLatestMangas = async (req, res) => {
         throw error;
     }
 };
+*/
 
 
+export const getLatestMangas = async (req, res) => {
+    try {
+        const page = Number(req.query.page) || 1;
+        const perPage = 30;
+        const skip = (page - 1) * perPage;
+        const totalCount = await Manga.countDocuments().exec();
 
+        const latestMangas = await Manga.find()
+            .sort({ createdAt: -1 })
+            .select('name photo slug totalChapters -_id')
+            .skip(skip)
+            .limit(perPage)
+            .exec();
 
+        if (latestMangas.length == []) {
+            return res.status(404).json({ error: 'No mangas found for this page' });
+        }
 
-
-
-
-
-
-
-
+        res.json({
+            mangas: latestMangas,
+            totalCount,
+            page,
+        });
+    } catch (error) {
+        console.error('Error fetching latest mangas:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};

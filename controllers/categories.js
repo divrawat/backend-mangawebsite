@@ -55,7 +55,6 @@ export const GetMangaCategories = async (req, res) => {
     const { slug } = req.query;
 
     try {
-        // Find the category by slug
         const category = await Category.findOne({ slug }).select('-description -__v').exec();
         if (!category) {
             return res.status(400).json({ error: 'Category not found' });
@@ -72,7 +71,12 @@ export const GetMangaCategories = async (req, res) => {
             .limit(perPage)
             .exec();
 
-        // Send response
+        if (mangas.length == []) {
+            return res.status(404).json({ error: 'No mangas found for this page' });
+        }
+
+
+
         res.json({ category, mangas, totalCount });
     } catch (err) {
         console.error(err);
