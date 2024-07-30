@@ -4,6 +4,8 @@ import Category from '../models/categories.js';
 import multer from 'multer';
 const upload = multer({});
 import slugify from 'slugify';
+import { FRONTEND_DOMAIN_1, FRONTEND_DOMAIN_2 } from '../domains.js';
+import fetch from 'isomorphic-fetch';
 
 export const HomePageMangas = async (req, res) => {
 
@@ -110,6 +112,9 @@ export const addManga = async (req, res) => {
             ).exec();
             res.json(updatedManga);
 
+            fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+            // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+
         } catch (err) {
             console.error(err);
             res.status(500).json({ error: 'Error saving manga' });
@@ -127,7 +132,12 @@ export const DeleteManga = async (req, res) => {
     try {
         const manga = await Manga.findByIdAndDelete(id);
         if (!manga) { return res.status(404).json({ error: 'Manga not found' }); }
+
+        fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+        // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+
         return res.status(200).json({ message: 'Manga deleted successfully' });
+
     } catch (error) {
         console.log(error);
         return res.status(500).json({ error: "Internal Server Error" });
@@ -160,6 +170,10 @@ export const UpdateManga = async (req, res) => {
             });
 
             const savedBlog = await manga.save();
+
+            fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+            // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+
             return res.status(200).json(savedBlog);
         } catch (error) {
             console.log(error);
@@ -168,49 +182,6 @@ export const UpdateManga = async (req, res) => {
     });
 }
 
-
-/*
-export const getMangaChaptersRelated = async (req, res) => {
-    if (req.method !== 'GET') { return res.status(405).json({ error: 'Method not allowed' }); }
-    let { manganame } = req.query;
-
-    function convertToTitleCase(str) {
-        return str
-            .split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    }
-
-    const convertedString = convertToTitleCase(manganame);
-
-    try {
-        const manga = await Manga.findOne({ slug: manganame }).populate({ path: 'categories', select: 'slug name' }).select('-_id -createdAt').exec();
-        if (!manga) { return res.status(404).json({ error: 'Manga Not Found' }); }
-        const data = await Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame').exec();
-
-        const categories = manga.categories;
-
-        const relatedMangas = await Manga.find({
-            categories: { $in: categories },
-            name: { $ne: convertedString }
-        })
-            .limit(10).select('-_id name slug chapterCount photo').exec();
-
-        const mangasWithChapterCounts = await Promise.all(
-            relatedMangas.map(async (manga) => {
-                const chapterCount = await Chapter.countDocuments({ manganame: manga.name }).exec();
-                return {
-                    ...manga.toObject(),
-                    chapterCount,
-                };
-            })
-        );
-
-        res.json({ status: true, message: 'All Chapters Fetched Successfully', data, manga, relatedMangas: mangasWithChapterCounts });
-    } catch (err) {
-        console.error('Error fetching Chapters:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-};
-*/
 
 
 export const getMangaChaptersRelated = async (req, res) => {
@@ -223,7 +194,7 @@ export const getMangaChaptersRelated = async (req, res) => {
     const convertedString = convertToTitleCase(manganame);
 
     try {
-        // Using a single aggregation pipeline for efficiency
+
         const manga = await Manga.aggregate([
             { $match: { slug: manganame } },
             { $lookup: { from: 'categories', localField: 'categories', foreignField: '_id', as: 'categories' } },
@@ -236,7 +207,6 @@ export const getMangaChaptersRelated = async (req, res) => {
 
         const [mangaData] = manga;
 
-        // Fetch chapters and related mangas
         const [chapters, relatedMangas] = await Promise.all([
             Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame -__v').exec(),
             Manga.aggregate([
@@ -260,71 +230,15 @@ export const getMangaChaptersRelated = async (req, res) => {
 };
 
 
-
-
-
-
-export const getMangaPerCategoryHome = async (req, res) => {
-    try {
-        const categories = await Category.find({ projection: { name: 1 } });
-
-        const mangasByCategory = await Promise.all(
-            categories.map(async (category) => {
-                const mangas = await Manga.find({ categories: category._id })
-                    .select('photo slug name -_id totalChapters').limit(50);
-                return { categoryName: category.name, mangas };
-            })
-        );
-
-        const result = mangasByCategory.reduce((acc, { categoryName, mangas }) => {
-            acc[categoryName] = mangas;
-            return acc;
-        }, {});
-
-        res.json(result);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'An error occurred while fetching mangas by category' });
-    }
-};
-
-
-/*
-export const getLatestMangas = async (req, res) => {
-    try {
-        const latestMangas = await Manga.find().sort({ createdAt: -1 }).select('name photo slug totalChapters -_id').limit(50);
-        res.json(latestMangas);
-    } catch (error) {
-        console.error('Error fetching latest mangas:', error);
-        throw error;
-    }
-};
-*/
-
-
 export const getLatestMangas = async (req, res) => {
     try {
         const page = Number(req.query.page) || 1;
         const perPage = 30;
         const skip = (page - 1) * perPage;
         const totalCount = await Manga.countDocuments().exec();
-
-        const latestMangas = await Manga.find()
-            .sort({ createdAt: -1 })
-            .select('name photo slug totalChapters -_id')
-            .skip(skip)
-            .limit(perPage)
-            .exec();
-
-        if (latestMangas.length == []) {
-            return res.status(404).json({ error: 'No mangas found for this page' });
-        }
-
-        res.json({
-            mangas: latestMangas,
-            totalCount,
-            page,
-        });
+        const latestMangas = await Manga.find().sort({ createdAt: -1 }).select('name photo slug totalChapters -_id').skip(skip).limit(perPage).exec();
+        if (latestMangas.length == []) { return res.status(404).json({ error: 'No mangas found for this page' }); }
+        res.json({ mangas: latestMangas, totalCount, page });
     } catch (error) {
         console.error('Error fetching latest mangas:', error);
         res.status(500).json({ error: 'Internal server error' });

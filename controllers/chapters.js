@@ -2,6 +2,9 @@ import Chapter from '../models/chapters.js';
 import Manga from '../models/mangas.js';
 import multer from 'multer';
 import { formatDistanceToNow } from 'date-fns';
+import fetch from 'isomorphic-fetch'
+import { FRONTEND_DOMAIN_1, FRONTEND_DOMAIN_2 } from '../domains.js';
+import slugify from 'slugify';
 
 const upload = multer({});
 
@@ -30,6 +33,11 @@ export const UploadSingleChapter = async (req, res) => {
             };
 
             await Manga.findOneAndUpdate({ name: manganame }, updateFields);
+
+            const slug = slugify(manganame).toLowerCase();
+
+            fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
+            // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
 
 
             res.status(201).json({ message: 'Chapter added successfully' });
@@ -166,6 +174,16 @@ export const BulkPostChapters = async (req, res) => {
         if (newChapters.length > 0) {
             const result = await Chapter.insertMany(newChapters);
 
+            const slug = slugify(currentmanganame).toLowerCase();
+
+            newChapters.forEach(chapter => {
+                fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}/chapter-${chapter.chapterNumber}`, { method: 'POST' });
+                fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+
+                // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/chapter-${chapter.chapterNumber}`, { method: 'POST' });
+                // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+            })
+
             // Handle cases where fewer than 2 chapters are inserted
             const lastInsertedChapter = result[result.length - 1] || null;
             const secondLastInsertedChapter = result.length > 1 ? result[result.length - 2] : null;
@@ -217,11 +235,27 @@ export const BulkDeleteChapters = async (req, res) => {
         if (!chapters || chapters.length === 0) {
             return res.status(404).json({ error: 'Manga not found or no chapters to delete' });
         }
+
+
         const result = await Chapter.deleteMany({ manganame });
+
+        const slug = slugify(manganame).toLowerCase();
+
+        chapters.forEach((chapter) => {
+            fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}/chapter-${chapter.chapterNumber}`, { method: 'POST' });
+            // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
+
+        });
 
         await Manga.findOneAndUpdate({ name: manganame }, { $set: { totalChapters: 0, latestChapter: null, secondlatestChapter: null } });
 
-        res.status(200).json({ message: 'Chapters deleted successfully', result });
+
+
+        // fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
+
+
+
+        res.status(200).json({ message: `${result.deletedCount} Chapters deleted successfully`, result });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Internal server error' });
@@ -234,7 +268,6 @@ export const BulkDeleteChapters = async (req, res) => {
 
 
 export const UpdateChapter = async (req, res) => {
-    if (req.method === 'POST') { return res.status(405).json({ message: 'Method not allowed' }); }
 
     const { id } = req.query;
     if (!id) { return res.status(404).json({ error: 'Chapter not found' }); }
@@ -256,7 +289,15 @@ export const UpdateChapter = async (req, res) => {
             });
 
             const savedBlog = await manga.save();
+
+            const slug = slugify(manganame).toLowerCase();
+
+            fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
+            // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
+
             return res.status(200).json(savedBlog);
+
+
         } catch (error) {
             console.log(error);
             return res.status(500).json({ error: "Internal Server Error" });
@@ -274,6 +315,15 @@ export const DeleteChapter = async (req, res) => {
         if (!manga) { return res.status(404).json({ error: 'Chapter not found' }); }
 
         await Manga.findOneAndUpdate({ name: manga.manganame }, { $inc: { totalChapters: -1 } });
+
+        const slug = slugify(manga.manganame).toLowerCase();
+
+        fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
+        // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}/chapter-${chapterNumber}`, { method: 'POST' });
+
+        fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+        // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
+
 
         return res.status(200).json({ message: 'Chapter deleted successfully' });
     } catch (error) {
