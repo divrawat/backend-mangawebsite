@@ -112,9 +112,6 @@ export const addManga = async (req, res) => {
             ).exec();
             res.json(updatedManga);
 
-            fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
-            // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
-
         } catch (err) {
             console.error(err);
             res.status(500).json({ error: 'Error saving manga' });
@@ -132,9 +129,6 @@ export const DeleteManga = async (req, res) => {
     try {
         const manga = await Manga.findByIdAndDelete(id);
         if (!manga) { return res.status(404).json({ error: 'Manga not found' }); }
-
-        fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
-        // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
 
         return res.status(200).json({ message: 'Manga deleted successfully' });
 
@@ -170,9 +164,6 @@ export const UpdateManga = async (req, res) => {
             });
 
             const savedBlog = await manga.save();
-
-            fetch(`${FRONTEND_DOMAIN_1}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
-            // fetch(`${FRONTEND_DOMAIN_2}/api/revalidate?path=/manga/${slug}`, { method: 'POST' });
 
             return res.status(200).json(savedBlog);
         } catch (error) {
