@@ -186,11 +186,14 @@ export const getMangaChaptersRelated = async (req, res) => {
 
     try {
 
+
         const manga = await Manga.aggregate([
             { $match: { slug: manganame } },
             { $lookup: { from: 'categories', localField: 'categories', foreignField: '_id', as: 'categories' } },
-            { $project: { _id: 0, createdAt: 0 } }
+            { $project: { _id: 0, "categories.description": 0, "categories.__v": 0 } }
         ]).exec();
+
+
 
         if (!manga.length) {
             return res.status(404).json({ error: 'Manga Not Found' });
@@ -199,7 +202,7 @@ export const getMangaChaptersRelated = async (req, res) => {
         const [mangaData] = manga;
 
         const [chapters, relatedMangas] = await Promise.all([
-            Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame -__v').exec(),
+            Chapter.find({ manganame: convertedString }).select('-_id -createdAt -numImages -manganame -__v').exec(),
             Manga.aggregate([
                 { $match: { categories: { $in: mangaData.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
                 { $project: { _id: 0, name: 1, slug: 1, photo: 1, totalChapters: 1 } },
@@ -232,6 +235,18 @@ export const getLatestMangas = async (req, res) => {
         res.json({ mangas: latestMangas, totalCount, page });
     } catch (error) {
         console.error('Error fetching latest mangas:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
+
+export const MangasForSitemap = async (req, res) => {
+    try {
+        const mangas = await Manga.find().select('slug createdAt -_id').exec();
+        res.json({ mangas });
+    } catch (error) {
+        console.error('Error fetching mangas:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
