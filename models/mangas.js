@@ -45,11 +45,6 @@ const mangaSchema = new mongoose.Schema(
             trim: true,
             required: true,
         },
-        photo: {
-            type: String,
-            trim: true,
-            required: true,
-        },
         categories: [{ type: ObjectId, ref: 'Category', required: true, index: true }],
         slug: {
             type: String,

@@ -323,7 +323,7 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
             categories: { $in: categories },
             name: { $ne: convertedString }
         })
-            .limit(10).select('-_id name slug chapterCount photo').exec();
+            .limit(10).select('-_id name slug chapterCount').exec();
 
         const mangasWithChapterCounts = await Promise.all(
             relatedMangas.map(async (manga) => {
@@ -373,7 +373,7 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
                 { $match: { categories: { $in: manga.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
                 { $lookup: { from: 'chapters', localField: 'name', foreignField: 'manganame', as: 'chapters' } },
                 { $addFields: { chapterCount: { $size: '$chapters' } } },
-                { $project: { _id: 0, name: 1, slug: 1, chapterCount: 1, photo: 1 } },
+                { $project: { _id: 0, name: 1, slug: 1, chapterCount: 1 } },
                 { $limit: 10 }
             ]).exec()
         ]);
@@ -403,7 +403,6 @@ export const GetMostRecentChapters = async (req, res) => {
             .filter(manga => manga.latestChapter)
             .map(manga => ({
                 mangaName: manga.name,
-                photo: manga.photo,
                 slug: manga.slug,
                 latestChapterNumber: manga.latestChapter.chapterNumber,
                 latestChapterDate: new Date(manga.latestChapter.createdAt),

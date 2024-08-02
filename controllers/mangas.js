@@ -19,7 +19,7 @@ export const HomePageMangas = async (req, res) => {
                 }
             },
             {
-                $project: { _id: 0, photo: 1, fullname: 1, type: 1, slug: 1, description: 1, categories: 1 }
+                $project: { _id: 0, fullname: 1, type: 1, slug: 1, description: 1, categories: 1 }
             }
         ];
 
@@ -69,7 +69,7 @@ export const getSingleManga = async (req, res) => {
             categories: { $in: categories },
             name: { $ne: name }
         })
-            .limit(10).select('-_id fullname name slug chapterCount photo').exec();
+            .limit(10).select('-_id fullname name slug chapterCount').exec();
 
         const mangasWithChapterCounts = await Promise.all(
             relatedMangas.map(async (manga) => {
@@ -95,14 +95,14 @@ export const addManga = async (req, res) => {
     upload.none()(req, res, async (err) => {
         if (err) { return res.status(400).json({ error: 'Something went wrong' }); }
 
-        const { name, fullname, description, slug, author, photo, type, categories, releaseDate, longdescription } = req.body;
+        const { name, fullname, description, slug, author, type, categories, releaseDate, longdescription } = req.body;
 
         if (!categories || categories.length === 0) {
             return res.status(400).json({ error: 'At least one category is required' });
         }
 
         const slugifiedSlug = slugify(slug).toLowerCase();
-        let manga = new Manga({ name, fullname, longdescription, slug: slugifiedSlug, description, author, releaseDate, photo, type, });
+        let manga = new Manga({ name, fullname, longdescription, slug: slugifiedSlug, description, author, releaseDate, type, });
 
         try {
             let arrayOfCategories = categories.split(',').map(category => category.trim());
@@ -148,7 +148,7 @@ export const UpdateManga = async (req, res) => {
             let manga = await Manga.findById(id);
             if (!manga) { return res.status(404).json({ error: 'Manga not found' }); }
 
-            const { name, fullname, description, author, type, categories, releaseDate, photo, longdescription } = req.body;
+            const { name, fullname, description, author, type, categories, releaseDate, longdescription } = req.body;
             const updatefields = req.body;
             Object.keys(updatefields).forEach((key) => {
                 if (key === 'name') { manga.name = name; }
@@ -160,7 +160,6 @@ export const UpdateManga = async (req, res) => {
                 else if (key === 'type') { manga.type = type; }
                 else if (key === 'slug') { manga.slug = slugify(updatefields.slug).toLowerCase(); }
                 else if (key === 'categories') { manga.categories = categories.split(',').map(category => category.trim()); }
-                else if (key === 'photo') { manga.photo = photo; }
             });
 
             const savedBlog = await manga.save();
@@ -205,7 +204,7 @@ export const getMangaChaptersRelated = async (req, res) => {
             Chapter.find({ manganame: convertedString }).select('-_id -createdAt -numImages -manganame -__v').exec(),
             Manga.aggregate([
                 { $match: { categories: { $in: mangaData.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
-                { $project: { _id: 0, name: 1, slug: 1, photo: 1, totalChapters: 1 } },
+                { $project: { _id: 0, name: 1, slug: 1, totalChapters: 1 } },
                 { $limit: 10 }
             ]).exec()
         ]);
@@ -230,7 +229,7 @@ export const getLatestMangas = async (req, res) => {
         const perPage = 30;
         const skip = (page - 1) * perPage;
         const totalCount = await Manga.countDocuments().exec();
-        const latestMangas = await Manga.find().sort({ createdAt: -1 }).select('name photo slug totalChapters -_id').skip(skip).limit(perPage).exec();
+        const latestMangas = await Manga.find().sort({ createdAt: -1 }).select('name slug totalChapters -_id').skip(skip).limit(perPage).exec();
         if (latestMangas.length == []) { return res.status(404).json({ error: 'No mangas found for this page' }); }
         res.json({ mangas: latestMangas, totalCount, page });
     } catch (error) {
