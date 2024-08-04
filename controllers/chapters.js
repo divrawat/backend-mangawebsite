@@ -426,3 +426,16 @@ export const GetMostRecentChapters = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+
+
+
+export const ChapterForSitemap = async (req, res) => {
+    try {
+        const chapters = await Chapter.find().select('chapterNumber manganame createdAt -_id').exec();
+        res.json({ chapters });
+    } catch (error) {
+        console.error('Error fetching chapters:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
