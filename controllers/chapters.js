@@ -367,6 +367,7 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
         }
 
         // Fetch all  chapter numbers and related mangas in parallel
+        /*
         const [allchapterNumbers, relatedMangas] = await Promise.all([
             Chapter.find({ manganame: convertedString }).select('chapterNumber -_id').exec(),
             Manga.aggregate([
@@ -377,6 +378,9 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
                 { $limit: 10 }
             ]).exec()
         ]);
+        */
+
+        const allchapterNumbers = await Chapter.find({ manganame: convertedString }).select('chapterNumber -_id').exec()
 
         res.json({
             status: true,
@@ -384,7 +388,7 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
             chapterData,
             manga,
             allchapterNumbers,
-            relatedMangas
+            // relatedMangas
         });
     } catch (err) {
         console.error('Error fetching Particular Chapter:', err);
