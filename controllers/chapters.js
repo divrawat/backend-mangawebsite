@@ -50,7 +50,7 @@ export const GetMangaChaptersDashBoard = async (req, res) => {
     try {
         const totalCount = await Chapter.countDocuments().exec();
         const page = Number(req.query.page) || 1;
-        const perPage = 20;
+        const perPage = 300;
         const { search } = req.query;
         const query = { $and: [{ manganame: { $regex: search, $options: 'i' } }] };
         const skip = (page - 1) * perPage;
@@ -244,7 +244,8 @@ export const BulkDeleteChapters = async (req, res) => {
 
 export const UpdateChapter = async (req, res) => {
 
-    const { id } = req.query;
+    const { id } = req.params;
+
     if (!id) { return res.status(404).json({ error: 'Chapter not found' }); }
 
     upload.none()(req, res, async (err) => {
@@ -252,6 +253,7 @@ export const UpdateChapter = async (req, res) => {
 
         try {
             let manga = await Chapter.findById(id);
+
             if (!manga) { return res.status(404).json({ error: 'Chapter not found' }); }
 
             const { manganame, numImages, chapterNumber } = req.body;
@@ -440,6 +442,17 @@ export const ChapterForSitemap = async (req, res) => {
         res.json({ chapters });
     } catch (error) {
         console.error('Error fetching chapters:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+
+export const ChapterWith0Images = async (req, res) => {
+    try {
+        const chapters = await Chapter.find({ numImages: 0 }).exec();
+        res.json({ chapters });
+    } catch (error) {
+        console.error('Error fetching chapters with 0 images:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
