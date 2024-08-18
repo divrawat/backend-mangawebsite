@@ -6,7 +6,14 @@ const upload = multer({});
 import slugify from 'slugify';
 import { FRONTEND_DOMAIN_1, FRONTEND_DOMAIN_2 } from '../domains.js';
 import fetch from 'isomorphic-fetch';
+import Redis from 'ioredis';
 
+const redis = new Redis({
+    host: 'patient-puma-43077.upstash.io',
+    port: 6379,
+    password: 'AahFAAIjcDEzOGQ2ZWEwYTgzYTc0ZjY5ODI1NmYxMjRlNDMxZjU0Y3AxMA',
+    tls: {}
+});
 /*
 export const HomePageMangas = async (req, res) => {
 
@@ -35,60 +42,39 @@ export const HomePageMangas = async (req, res) => {
 */
 
 
-
-
-
-
-let cache = {
-    data: null,
-    timestamp: null
-};
-
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1 day in milliseconds
-
 export const HomePageMangas = async (req, res) => {
     try {
-        const now = Date.now();
+        const cacheKey = 'homepage_mangas';
+        const cachedData = await redis.get(cacheKey);
 
-        // Check if we have valid cached data
-        if (cache.data && (now - cache.timestamp < CACHE_DURATION)) {
-            return res.json({ status: true, message: '10 Random Mangas Fetched Successfully (from cache)', data: cache.data });
-        } else {
-            // Fetch new data from the database
-            const aggregation = [
-                { $sample: { size: 10 } },
-                {
-                    $lookup: {
-                        from: 'categories',
-                        localField: 'categories',
-                        foreignField: '_id',
-                        as: 'categories',
-                        pipeline: [{ $project: { _id: 0, name: 1, slug: 1 } }]
-                    }
-                },
-                {
-                    $project: { _id: 0, fullname: 1, type: 1, slug: 1, description: 1, categories: 1 }
-                }
-            ];
-
-            const data = await Manga.aggregate(aggregation);
-
-            // Store the fetched data and timestamp in the cache
-            cache.data = data;
-            cache.timestamp = now;
-
-            return res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data });
+        if (cachedData) {
+            return res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data: JSON.parse(cachedData) });
         }
+
+        const aggregation = [
+            { $sample: { size: 10 } },
+            {
+                $lookup: {
+                    from: 'categories', localField: 'categories', foreignField: '_id', as: 'categories',
+                    pipeline: [{ $project: { _id: 0, name: 1, slug: 1 } }]
+                }
+            },
+            {
+                $project: { _id: 0, fullname: 1, type: 1, slug: 1, description: 1, categories: 1 }
+            }
+        ];
+
+        const data = await Manga.aggregate(aggregation);
+
+        // Cache the data with an expiration time (e.g., 1 hour)
+        await redis.set(cacheKey, JSON.stringify(data), 'EX', 3600);
+
+        res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data });
     } catch (err) {
         console.error('Error fetching Mangas:', err);
-        return res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 };
-
-
-
-
-
 
 
 
