@@ -410,12 +410,15 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
 
 export const GetMostRecentChapters = async (req, res) => {
     try {
+
+        /*
         const cacheKey = 'most_recent_chapters';
         const cachedData = await redis.get(cacheKey);
 
         if (cachedData) {
             return res.status(200).json(JSON.parse(cachedData));
         }
+            */
 
         const mangas = await Manga.find()
             .populate({ path: 'latestChapter', select: 'chapterNumber createdAt' })
@@ -443,7 +446,7 @@ export const GetMostRecentChapters = async (req, res) => {
         }));
 
         // Cache the recent chapters with an expiration time (e.g., 1 hour)
-        await redis.set(cacheKey, JSON.stringify(recentChapters), 'EX', 3600);
+        // await redis.set(cacheKey, JSON.stringify(recentChapters), 'EX', 3600);
 
         res.status(200).json(recentChapters);
 
