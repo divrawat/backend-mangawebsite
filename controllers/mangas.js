@@ -6,6 +6,8 @@ const upload = multer({});
 import slugify from 'slugify';
 import { FRONTEND_DOMAIN_1, FRONTEND_DOMAIN_2 } from '../domains.js';
 import fetch from 'isomorphic-fetch';
+
+/*
 import Redis from 'ioredis';
 
 const redis = new Redis({
@@ -14,6 +16,9 @@ const redis = new Redis({
     password: 'AahFAAIjcDEzOGQ2ZWEwYTgzYTc0ZjY5ODI1NmYxMjRlNDMxZjU0Y3AxMA',
     tls: {}
 });
+*/
+
+
 /*
 export const HomePageMangas = async (req, res) => {
 
