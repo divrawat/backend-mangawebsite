@@ -7,7 +7,6 @@ import slugify from 'slugify';
 import { FRONTEND_DOMAIN_1, FRONTEND_DOMAIN_2 } from '../domains.js';
 import fetch from 'isomorphic-fetch';
 
-/*
 import Redis from 'ioredis';
 
 const redis = new Redis({
@@ -16,7 +15,7 @@ const redis = new Redis({
     password: 'AahFAAIjcDEzOGQ2ZWEwYTgzYTc0ZjY5ODI1NmYxMjRlNDMxZjU0Y3AxMA',
     tls: {}
 });
-*/
+
 
 
 /*
@@ -50,14 +49,14 @@ export const HomePageMangas = async (req, res) => {
 export const HomePageMangas = async (req, res) => {
     try {
 
-        /*
+
         const cacheKey = 'homepage_mangas';
         const cachedData = await redis.get(cacheKey);
 
         if (cachedData) {
             return res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data: JSON.parse(cachedData) });
         }
-            */
+
 
         const aggregation = [
             { $sample: { size: 10 } },
@@ -75,7 +74,7 @@ export const HomePageMangas = async (req, res) => {
         const data = await Manga.aggregate(aggregation);
 
         // Cache the data with an expiration time (e.g., 1 hour)
-        // await redis.set(cacheKey, JSON.stringify(data), 'EX', 3600);
+        await redis.set(cacheKey, JSON.stringify(data), 'EX', 3600);
 
         res.json({ status: true, message: '10 Random Mangas Fetched Successfully', data });
     } catch (err) {

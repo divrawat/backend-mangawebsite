@@ -5,16 +5,16 @@ import { formatDistanceToNow } from 'date-fns';
 import fetch from 'isomorphic-fetch'
 import { FRONTEND_DOMAIN_1, FRONTEND_DOMAIN_2 } from '../domains.js';
 import slugify from 'slugify';
-/*
+
 import Redis from 'ioredis';
 
 const redis = new Redis({
     host: 'patient-puma-43077.upstash.io',
     port: 6379,
-    password: 'AahFAAIjcDEzOGQ2ZWEwYTgzYTc0ZjY5ODI1NmYxMjRlNDMxZjU0Y3AxMA',
+    password: process.env.REDIS_PASSWORD,
     tls: {}
 });
-*/
+
 
 const upload = multer({});
 
@@ -413,14 +413,14 @@ export const getParticularMangaChapterWithRelated = async (req, res) => {
 export const GetMostRecentChapters = async (req, res) => {
     try {
 
-        /*
+
         const cacheKey = 'most_recent_chapters';
         const cachedData = await redis.get(cacheKey);
 
         if (cachedData) {
             return res.status(200).json(JSON.parse(cachedData));
         }
-            */
+
 
         const mangas = await Manga.find()
             .populate({ path: 'latestChapter', select: 'chapterNumber createdAt' })
@@ -447,8 +447,8 @@ export const GetMostRecentChapters = async (req, res) => {
             secondlatestChapterDate: chapter.secondlatestChapterDate ? formatDistanceToNow(chapter.secondlatestChapterDate, { addSuffix: true }) : null,
         }));
 
-        // Cache the recent chapters with an expiration time (e.g., 1 hour)
-        // await redis.set(cacheKey, JSON.stringify(recentChapters), 'EX', 3600);
+        //  Cache the recent chapters with an expiration time(e.g., 1 hour)
+        await redis.set(cacheKey, JSON.stringify(recentChapters), 'EX', 3600);
 
         res.status(200).json(recentChapters);
 
