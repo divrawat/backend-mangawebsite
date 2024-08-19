@@ -25,11 +25,6 @@ const mangaSchema = new mongoose.Schema(
             trim: true,
             required: true,
         },
-        longdescription: {
-            type: String,
-            trim: true,
-            required: true,
-        },
         author: {
             type: String,
             trim: true,

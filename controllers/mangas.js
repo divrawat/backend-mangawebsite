@@ -160,14 +160,14 @@ export const addManga = async (req, res) => {
     upload.none()(req, res, async (err) => {
         if (err) { return res.status(400).json({ error: 'Something went wrong' }); }
 
-        const { name, fullname, description, slug, author, type, categories, releaseDate, longdescription } = req.body;
+        const { name, fullname, description, slug, author, type, categories, releaseDate } = req.body;
 
         if (!categories || categories.length === 0) {
             return res.status(400).json({ error: 'At least one category is required' });
         }
 
         const slugifiedSlug = slugify(slug).toLowerCase();
-        let manga = new Manga({ name, fullname, longdescription, slug: slugifiedSlug, description, author, releaseDate, type, });
+        let manga = new Manga({ name, fullname, slug: slugifiedSlug, description, author, releaseDate, type, });
 
         try {
             let arrayOfCategories = categories.split(',').map(category => category.trim());
@@ -213,13 +213,12 @@ export const UpdateManga = async (req, res) => {
             let manga = await Manga.findById(id);
             if (!manga) { return res.status(404).json({ error: 'Manga not found' }); }
 
-            const { name, fullname, description, author, type, categories, releaseDate, longdescription } = req.body;
+            const { name, fullname, description, author, type, categories, releaseDate, } = req.body;
             const updatefields = req.body;
             Object.keys(updatefields).forEach((key) => {
                 if (key === 'name') { manga.name = name; }
                 if (key === 'fullname') { manga.fullname = fullname; }
                 else if (key === 'description') { manga.description = description; }
-                else if (key === 'longdescription') { manga.longdescription = longdescription; }
                 else if (key === 'author') { manga.author = author; }
                 else if (key === 'releaseDate') { manga.releaseDate = releaseDate; }
                 else if (key === 'type') { manga.type = type; }
