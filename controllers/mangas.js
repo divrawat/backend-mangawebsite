@@ -287,10 +287,10 @@ export const getMangaChaptersRelated = async (req, res) => {
 export const getMangaChaptersRelated = async (req, res) => {
     let { manganame } = req.query;
 
+
     function convertToTitleCase(str) {
         return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     }
-
     const convertedString = convertToTitleCase(manganame);
 
     try {
@@ -300,29 +300,30 @@ export const getMangaChaptersRelated = async (req, res) => {
             { $project: { _id: 0, "categories.description": 0, "categories.__v": 0 } }
         ]).exec();
 
-        if (!manga.length) {
-            return res.status(404).json({ error: 'Manga Not Found' });
-        }
+        // if (!manga.length) {return res.status(404).json({ error: 'Manga Not Found' }); }
+
+
 
         const [mangaData] = manga;
 
         const [chapters, relatedMangas] = await Promise.all([
             Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame -__v').exec(),
-            Manga.aggregate([
-                { $match: { categories: { $in: mangaData.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
-                { $project: { _id: 0, name: 1, slug: 1, totalChapters: 1 } },
-                { $limit: 10 }
-            ]).exec()
+            // Manga.aggregate([
+            //     { $match: { categories: { $in: mangaData.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
+            //     { $project: { _id: 0, name: 1, slug: 1, totalChapters: 1 } },
+            //     { $limit: 10 }
+            // ]).exec()
         ]);
 
-        if (!chapters.length) { return res.status(404).json({ error: 'No chapters found' }); }
+        // if (!chapters.length) { return res.status(404).json({ error: 'No chapters found' }); }
+
 
         res.json({
             status: true,
             message: 'All Chapters Fetched Successfully',
             data: chapters,
             manga: mangaData,
-            relatedMangas
+            // relatedMangas
         });
     } catch (err) {
         console.error('Error fetching Chapters:', err);
