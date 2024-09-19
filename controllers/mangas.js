@@ -307,7 +307,7 @@ export const getMangaChaptersRelated = async (req, res) => {
         const [mangaData] = manga;
 
         const [chapters, relatedMangas] = await Promise.all([
-            Chapter.find({ manganame: convertedString }).select('-_id -numImages -manganame -__v').exec(),
+            Chapter.find({ manganame: convertedString }).select('-_id -manganame -createdAt -__v').exec(),
             // Manga.aggregate([
             //     { $match: { categories: { $in: mangaData.categories.map(cat => cat._id) }, name: { $ne: convertedString } } },
             //     { $project: { _id: 0, name: 1, slug: 1, totalChapters: 1 } },

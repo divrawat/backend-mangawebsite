@@ -439,7 +439,7 @@ export const GetMostRecentChapters = async (req, res) => {
 
         recentChapters = recentChapters
             .sort((a, b) => b.latestChapterDate - a.latestChapterDate)
-            .slice(0, 100);
+            .slice(0, 128);
 
         recentChapters = recentChapters.map(chapter => ({
             ...chapter,
