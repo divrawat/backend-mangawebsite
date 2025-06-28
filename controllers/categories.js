@@ -75,8 +75,6 @@ export const GetMangaCategories = async (req, res) => {
             return res.status(404).json({ error: 'No mangas found for this page' });
         }
 
-
-
         res.json({ category, mangas, totalCount });
     } catch (err) {
         console.error(err);
